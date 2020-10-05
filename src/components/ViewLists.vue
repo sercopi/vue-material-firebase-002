@@ -29,7 +29,33 @@
           >
           <option class="pink-text" value="completed">Completados</option>
         </select>
-        <label>Ordenar</label>
+        <label class="pink-text">Ordenar</label>
+      </div>
+      <div class="row">
+        <label for="newPlace" class="pink-text">
+          Añadir Lugar de compra habitual
+          <button @click="addPlace" class="btn waves-effect waves-light pink">
+            <i class="material-icons">room</i>
+          </button>
+          <input
+            type="text"
+            id="newPlace"
+            class="pink-text"
+            v-model="newPlace"
+          />
+        </label>
+        <div>
+          <h4 class="pink-text">Tus Lugares:</h4>
+          <div class="pink-text" v-if="places.length == 0">
+            Aun no tienes lugares? Añade el primero!
+          </div>
+          <div v-for="(place, index) in places" :key="index" class="chip pink">
+            {{ place.place }}
+            <i @click="deletePlace(place.id)" class="close material-icons"
+              >close</i
+            >
+          </div>
+        </div>
       </div>
       <div>
         <button
@@ -172,7 +198,9 @@ export default {
   data() {
     return {
       lists: [],
-      order: "fec-asc"
+      order: "fec-asc",
+      newPlace: null,
+      places: []
     };
   },
   /* beforeRouteEnter(to, from, next) {
@@ -220,8 +248,15 @@ export default {
       .get()
       .then(querySnapshot => {
         querySnapshot.forEach(doc => {
-          console.log(doc.data());
           this.lists.push({ ...doc.data() });
+        });
+      });
+    db.collection("Places")
+      .where("user_id", "==", firebase.auth().currentUser.uid)
+      .get()
+      .then(querySnapshot => {
+        querySnapshot.forEach(doc => {
+          this.places.push({ place: doc.data().place, id: doc.id });
         });
       });
   },
@@ -259,6 +294,7 @@ export default {
       db.collection("Lists")
         .doc(id)
         .set({
+          list_id: id,
           user_id: firebase.auth().currentUser.uid,
           created_at: moment().format("DD/MM/YYYY HH:mm"),
           updated_at: "",
@@ -323,7 +359,48 @@ export default {
         });
       }
     },
-    show() {}
+    addPlace() {
+      const names = this.places.reduce((acc, place) => {
+        acc.push(place.place);
+        return acc;
+      }, []);
+      console.log(names);
+      if (names.includes(this.newPlace)) {
+        M.toast({
+          html: "<p> El lugar de compra ya existe!</p>",
+          classes: "pink"
+        });
+        return false;
+      }
+      if (this.newPlace == null || this.newPlace == "") {
+        M.toast({
+          html: "<p> Elige un nombre para el lugar!</p>",
+          classes: "pink"
+        });
+        return false;
+      }
+      console.log("lugar añadido");
+      const id = db.collection("Places").doc().id;
+      db.collection("Places")
+        .doc(id)
+        .set({
+          user_id: firebase.auth().currentUser.uid,
+          place: this.newPlace
+        })
+        .then(() => {
+          this.places.push({ id: id, place: this.newPlace });
+          this.newPlace = null;
+        })
+        .catch(error => console.log(error));
+    },
+    deletePlace(id) {
+      db.collection("Places")
+        .doc(id)
+        .delete()
+        .then(() => {
+          this.places.filter(setPlace => setPlace.id !== id);
+        });
+    }
   }
 };
 </script>

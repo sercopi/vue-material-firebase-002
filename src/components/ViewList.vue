@@ -39,15 +39,43 @@
                 </label>
               </div>
               <div class="col sm2 xl2">
-                <label>
-                  <span class="pink-text text-darken-2">Lugar:</span>
-                  <input
-                    class="pink-text text-darken-2"
-                    v-model="object.lugar"
-                    :id="index + 'lugar'"
-                    type="text"
-                  />
-                </label>
+                <div>
+                  <h4 class="pink-text">{{ object.place }}</h4>
+                </div>
+                <div class="text-pink">
+                  <button
+                    @click.prevent="openCustomModal('#object-' + object.name)"
+                    class="btn pink"
+                  >
+                    <span><i class="material-icons">room</i></span>
+                  </button>
+
+                  <!-- Modal Structure -->
+                  <div :id="'object-' + object.name" class="modal">
+                    <div class="modal-content">
+                      <p class="pink-text">Elige un lugar de compra:</p>
+                      <p v-for="(place, index) in places" :key="index">
+                        <label>
+                          <input
+                            name="newObjectPlace"
+                            type="radio"
+                            :value="place"
+                            v-model="object.place"
+                          />
+                          <span class="pink-text">{{ place }}</span>
+                        </label>
+                      </p>
+                    </div>
+                    <div class="modal-footer">
+                      <a
+                        @click.prevent
+                        class="btn modal-close waves-effect pink"
+                      >
+                        salir
+                      </a>
+                    </div>
+                  </div>
+                </div>
               </div>
               <div class="col sm2 xl2">
                 <label>
@@ -102,15 +130,40 @@
             </label>
           </div>
           <div class="col sm2 xl2">
-            <label>
-              <span class="pink-text text-darken-2">Lugar:</span>
-              <input
-                class="pink-text text-darken-2"
-                v-model="newObject.lugar"
-                id="newObjectLugar"
-                type="text"
-              />
-            </label>
+            <div>
+              <p class="pink-text">{{ newObject.place }}</p>
+            </div>
+            <div class="text-pink">
+              <button
+                @click.prevent="openCustomModal('#newObject')"
+                class="btn pink"
+              >
+                <span><i class="material-icons">room</i></span>
+              </button>
+
+              <!-- Modal Structure -->
+              <div :id="'newObject'" class="modal">
+                <div class="modal-content">
+                  <h4 class="pink-text">Elige un lugar de compra:</h4>
+                  <p v-for="(place, index) in places" :key="index">
+                    <label>
+                      <input
+                        name="newObjectPlace"
+                        type="radio"
+                        :value="place"
+                        v-model="newObject.place"
+                      />
+                      <span class="pink-text">{{ place }}</span>
+                    </label>
+                  </p>
+                </div>
+                <div class="modal-footer">
+                  <a @click.prevent class="btn modal-close waves-effect pink">
+                    salir
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="col sm2 xl2">
             <label>
@@ -145,6 +198,7 @@
 </template>
 
 <script>
+import firebase from "firebase";
 import db from "@/components/firebaseInit";
 import moment from "moment";
 export default {
@@ -162,16 +216,17 @@ export default {
       },
       newObject: {
         name: null,
-        lugar: null,
+        place: null,
         comprado: false,
         number: 1
       },
-      lastSave: null
+      lastSave: null,
+      places: []
     };
   },
   beforeRouteLeave(to, from, next) {
-    console.log(this.lastSave);
-    console.log(this.list);
+    /* console.log(this.lastSave);
+    console.log(this.list); */
     if (JSON.stringify(this.lastSave) !== JSON.stringify(this.list)) {
       confirm("Hay cambios no guardados, continuar?") ? next() : next(false);
     } else {
@@ -192,6 +247,18 @@ export default {
         });
       });
   },
+  mounted() {},
+  created() {
+    db.collection("Places")
+      .where("user_id", "==", firebase.auth().currentUser.uid)
+      .get()
+      .then(querySnapshot => {
+        querySnapshot.forEach(doc => {
+          console.log(doc.data());
+          this.places.push(doc.data().place);
+        });
+      });
+  },
   computed: {
     isCompleted() {
       return (
@@ -201,6 +268,12 @@ export default {
     }
   },
   methods: {
+    openCustomModal(id) {
+      const elem = document.querySelector(id);
+      const instance = M.Modal.init(elem);
+      instance.open();
+      console.log(this.newObject.place);
+    },
     updateList(event, info = false, type = false) {
       if (
         this.list.objects.some(
@@ -245,9 +318,6 @@ export default {
       return !this.list.objects.every(object => object.name !== name);
     },
     addObject() {
-      console.log(this.newObject.name);
-      this.list.objects.forEach(object => console.log(object.name));
-
       if (this.newObject.name == null || this.newObject.name == "") {
         M.toast({
           html: "<p>El Artículo debe contener un nombre! </p>",
@@ -268,7 +338,7 @@ export default {
 
       this.newObject = {
         name: null,
-        lugar: null,
+        place: null,
         comprado: false,
         number: 1
       };
@@ -341,5 +411,12 @@ label {
 }
 label span {
   margin-right: 5px;
+}
+.modal-footer {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-content: center;
+  margin-bottom: 20px;
 }
 </style>
