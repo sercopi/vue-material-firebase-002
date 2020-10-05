@@ -17,13 +17,17 @@
     <h2 class="pink-text">listas de la compra</h2>
     <div class="row container">
       <div class="input-field ">
-        <select v-model="order" @change="orderBy">
-          <option value="" disabled selected>Elige una Opción</option>
-          <option value="fec-asc">fecha ASC</option>
-          <option value="title">título</option>
-          <option value="fec-desc">fecha DESC</option>
-          <option value="quantity">Cantidad de Artículos</option>
-          <option value="completed">Completados</option>
+        <select v-model="order" class="pink-text" @change="orderBy">
+          <option class="pink-text" value="" disabled selected
+            >Elige una Opción</option
+          >
+          <option class="pink-text" value="fec-asc">fecha ASC</option>
+          <option class="pink-text" value="title">título</option>
+          <option class="pink-text" value="fec-desc">fecha DESC</option>
+          <option class="pink-text" value="quantity"
+            >Cantidad de Artículos</option
+          >
+          <option class="pink-text" value="completed">Completados</option>
         </select>
         <label>Ordenar</label>
       </div>
@@ -151,11 +155,16 @@
           </div>
         </div>
       </div>
+      <br />
+      <div class="pink-text" v-if="lists.length == 0">
+        No tienes ninguna lista, crea la primera!
+      </div>
     </div>
   </div>
 </template>
 
 <script>
+import firebase from "firebase";
 import db from "@/components/firebaseInit";
 import moment from "moment";
 export default {
@@ -163,10 +172,10 @@ export default {
   data() {
     return {
       lists: [],
-      order: null
+      order: "fec-asc"
     };
   },
-  beforeRouteEnter(to, from, next) {
+  /* beforeRouteEnter(to, from, next) {
     db.collection("Lists")
       .get()
       .then(querySnapshot => {
@@ -177,10 +186,11 @@ export default {
               ...doc.data()
             });
           });
-          console.log(doc.data());
         });
       });
-  },
+    //este next es necesario, si no hay ninguna lista, aun asi se va hacia la url
+    next();
+  }, */
   computed: {
     completed() {
       return this.lists.reduce((acc, list) => {
@@ -201,10 +211,20 @@ export default {
   },
   mounted() {
     const select = document.querySelector("select");
-    console.log(select);
     M.FormSelect.init(select);
+    //ordenar por defecto
   },
-
+  created() {
+    db.collection("Lists")
+      .where("user_id", "==", firebase.auth().currentUser.uid)
+      .get()
+      .then(querySnapshot => {
+        querySnapshot.forEach(doc => {
+          console.log(doc.data());
+          this.lists.push({ ...doc.data() });
+        });
+      });
+  },
   methods: {
     openCustomModal(id) {
       const elem = document.querySelector(id);
@@ -221,7 +241,7 @@ export default {
             element => element.list_id !== list.list_id
           );
         })
-        .catch(error => console.erro(error));
+        .catch(error => console.error(error));
     },
     udpdateList(list) {
       list.done = !list.done;
@@ -229,7 +249,8 @@ export default {
       this.lists = [...this.lists];
       db.collection("Lists")
         .doc(list.list_id)
-        .set(list);
+        .set(list)
+        .then(() => this.orderBy());
     },
     createNewList() {
       const ref = db.collection("Lists").doc();
@@ -238,6 +259,7 @@ export default {
       db.collection("Lists")
         .doc(id)
         .set({
+          user_id: firebase.auth().currentUser.uid,
           created_at: moment().format("DD/MM/YYYY HH:mm"),
           updated_at: "",
           done: false,
@@ -268,7 +290,7 @@ export default {
           return 0;
         });
       }
-      if (this.order == "fec-asc") {
+      if (this.order == "fec-desc") {
         this.lists = this.lists.sort((listA, listB) => {
           if (
             moment(listA.created_at, "DD/MM/YYYY HH:mm").isAfter(
@@ -280,7 +302,7 @@ export default {
           return +1;
         });
       }
-      if (this.order == "fec-desc") {
+      if (this.order == "fec-asc") {
         this.lists = this.lists.sort((listA, listB) => {
           if (
             moment(listA.created_at, "DD/MM/YYYY HH:mm").isAfter(

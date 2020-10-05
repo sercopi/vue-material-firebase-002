@@ -165,8 +165,18 @@ export default {
         lugar: null,
         comprado: false,
         number: 1
-      }
+      },
+      lastSave: null
     };
+  },
+  beforeRouteLeave(to, from, next) {
+    console.log(this.lastSave);
+    console.log(this.list);
+    if (JSON.stringify(this.lastSave) !== JSON.stringify(this.list)) {
+      confirm("Hay cambios no guardados, continuar?") ? next() : next(false);
+    } else {
+      next();
+    }
   },
   beforeRouteEnter(to, from, next) {
     db.collection("Lists")
@@ -177,7 +187,8 @@ export default {
           (vm.list_id = to.params.list_id),
             (vm.list = {
               ...doc.data()
-            });
+            }),
+            (vm.lastSave = { ...doc.data() });
         });
       });
   },
@@ -191,12 +202,34 @@ export default {
   },
   methods: {
     updateList(event, info = false, type = false) {
+      if (
+        this.list.objects.some(
+          object => object.name == "" || object.name == null
+        )
+      ) {
+        M.toast({
+          html: "<p>Todos los Artículos tienen que tener nombre! </p>",
+          classes: "pink"
+        });
+        return false;
+      }
+      const names = this.list.objects.reduce((acc, object) => {
+        acc.push(object.name);
+        return acc;
+      }, []);
+      if (new Set(names).size !== names.length) {
+        M.toast({
+          html: "<p>No puede haber nombres repetidos! </p>",
+          classes: "pink"
+        });
+        return false;
+      }
       const list = {
         ...this.list
       };
+      this.lastSave = { ...this.list };
       list["updated_at"] = moment().format("DD/MM/YYYY HH:mm");
       list.done = this.isCompleted;
-      console.log(this.isCompleted);
       db.collection("Lists")
         .doc(this.list_id)
         .set(list)
@@ -209,20 +242,25 @@ export default {
         .catch(error => console.log(error));
     },
     nameExists(name) {
-      return this.list.objects.every(object => object.name !== name);
+      return !this.list.objects.every(object => object.name !== name);
     },
     addObject() {
-      if (this.newObject.name == null) {
+      console.log(this.newObject.name);
+      this.list.objects.forEach(object => console.log(object.name));
+
+      if (this.newObject.name == null || this.newObject.name == "") {
         M.toast({
           html: "<p>El Artículo debe contener un nombre! </p>",
           classes: "pink"
         });
+        return false;
       }
-      if (this.nameExists(name)) {
+      if (this.nameExists(this.newObject.name)) {
         M.toast({
           html: "<p>El nombre del Artículo ya existe! </p>",
           classes: "pink"
         });
+        return false;
       }
       this.newObject.id = this.list_id + "-" + (this.list.objects.length + 1);
       this.list.objects.push(this.newObject);
