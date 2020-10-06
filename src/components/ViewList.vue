@@ -18,7 +18,7 @@
     </div>
 
     <div class="row">
-      <form class="col s12">
+      <form class="col">
         <ul class="collection">
           <li v-if="!list">No hay Artículos, Añade el primero!</li>
           <li

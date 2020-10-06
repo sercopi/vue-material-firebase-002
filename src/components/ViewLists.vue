@@ -133,7 +133,9 @@
                     class="pink-text item"
                   >
                     <p>
-                      {{ object.name }} comprado:
+                      <span class="pink-text truncate">
+                        {{ object.name }} comprado:
+                      </span>
                       <span
                         ><i class="material-icons">{{
                           object.comprado ? "check" : "clear"

@@ -2,9 +2,9 @@
   <nav>
     <div class="nav-wrapper pink">
       <div class="container">
-        <router-link to="/" class="brand-logo">Sercopi COMPRA</router-link>
+        <router-link to="/" class="brand-logo left">Sercopi COMPRA</router-link>
         <ul class="right">
-          <li v-if="isLoggedIn">
+          <li class="hide-on-small-only" v-if="isLoggedIn">
             <span class="black-text">{{ currentUser }}</span>
           </li>
 
